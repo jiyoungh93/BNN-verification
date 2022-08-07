@@ -1,3 +1,4 @@
+
 from __future__ import print_function
 import argparse
 import torch
@@ -12,7 +13,7 @@ from models.binarized_modules import  Binarize,HingeLoss
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 256)')
-parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
+parser.add_argument('--test-batch-size', type=int, default=20, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -39,17 +40,19 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 train_loader = torch.utils.data.DataLoader(
     datasets.MNIST('../data', train=True, download=True,
                    transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.1307,), (0.3081,))
+                       transforms.ToTensor()
+                       #transforms.Normalize((0.1307,), (0.3081,))
                    ])),
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
+
 test_loader = torch.utils.data.DataLoader(
     datasets.MNIST('../data', train=False, transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.1307,), (0.3081,))
+                       transforms.ToTensor()
+                       #transforms.Normalize((0.1307,), (0.3081,))
                    ])),
     batch_size=args.test_batch_size, shuffle=True, **kwargs)
+
 
 
 class Net(nn.Module):
@@ -61,18 +64,19 @@ class Net(nn.Module):
 
         # 1st layer
         self.fc1 = BinarizeLinear(28*28,second_layer_size)
-        self.bn1 = nn.BatchNorm1d(second_layer_size)
         self.relu1 = nn.ReLU()
+        self.bn1 = nn.BatchNorm1d(second_layer_size)
 
-        self.hardsigmoid = nn.Hardsigmoid()
+        # 2nd layer
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         x = x.view(-1, 28*28)
         x = self.fc1(x)
-        x = self.bn1(x)
         x = self.relu1(x)
-        x = self.hardsigmoid(x)
+        x = self.bn1(x)
 
+        x = self.relu(x)
 
         return x
 
@@ -85,6 +89,11 @@ if args.cuda:
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+def sign(var):
+    if var >= 0:
+        return 1
+    else:
+        return 0
 
 def train(epoch):
     model.train()
@@ -92,6 +101,10 @@ def train(epoch):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
+
+        data = data.sign()
+        #print("data_bin: ",data)
+
         optimizer.zero_grad()
         output = model(data)
         loss = criterion(output, target)
@@ -115,40 +128,47 @@ def train(epoch):
                 100. * batch_idx / len(train_loader), loss.item()))
 
 def test():
-    print(model)
+
     fc1_weights = model.state_dict()['fc1.weight']
     fc1_bias = model.state_dict()['fc1.bias']
-    bn1_weights = model.state_dict()['bn1.weight']
-    bn1_bias = model.state_dict()['bn1.bias']
+    # bn1_weights = model.state_dict()['bn1.weight']
+    # bn1_bias = model.state_dict()['bn1.bias']
     print(fc1_weights.shape)
 
-    second_layer_size = 200
+    second_layer_size = 100
 
     import sys
 
-    sys.stdout = open('stdout.txt', 'w')
+    sys.stdout = open('stdout123.txt', 'w')
+    print(model)
+    #print(model.state_dict())
 
     print("fc1: ========================================================")
+    bin_weights = Binarize(fc1_weights)
+    bin_weights = torch.transpose(bin_weights,0, 1)
+    #print("bin_weights: ",bin_weights)
+    #print("fc1: ========================================================")
+    #print("weights: ", bin_weights)
+    for i in range(784):
+        print("    {", end='')
+        for j in range(second_layer_size):
+            val = int(bin_weights[i][j].item())
 
-    for i in range(second_layer_size):
-        print("{", end='')
-        for j in range(784):
-            val = round(fc1_weights[i][j].item(), 6)
             if(j == 783):
-                print(str(val)+"f", end='')
+                print(str(val), end='')
             else:
-                print(str(val)+"f"+", ", end='')
+                print(str(val)+", ", end='')
         print("},")
     print("\n--------------------------------------------------------------------------------")
     print("fc1_bias: ",fc1_bias.shape)
+    bin_bias = Binarize(fc1_bias)
     for i in range(second_layer_size):
-        val = round(fc1_bias[i].item(), 6)
-        print(str(val)+"f"+", ", end='')
+        #val = round(fc1_bias[i].item(), 6)
+        val = int(bin_bias[i].item())
+        print(str(val)+", ", end='')
     print("\n--------------------------------------------------------------------------------")
 
-
     print("bn1: ========================================================")
-
 
     print("========================================================")
     bn1_running_mean = model.state_dict()['bn1.running_mean']
@@ -163,6 +183,8 @@ def test():
     bn1_running_var = model.state_dict()['bn1.running_var']
     print("bn1.running_var_modified: ", bn1_running_var.shape)
     for i in range(second_layer_size):
+        #print(str(val) + "f" + ", ", end='')
+        #print("\n--------------------------------------------------------------------------------")
         val = round(math.sqrt(1/(bn1_running_var[i].item()+0.00001)), 6)
         print(str(val)+"f"+", ", end='')
 
@@ -171,16 +193,46 @@ def test():
     test_loss = 0
     correct = 0
 
+    print("\n--------------------------------------------------------------------------------")
+
+    flag = 0
+    torch.set_printoptions(profile="full")
     with torch.no_grad():
         for data, target in test_loader:
             if args.cuda:
                 data, target = data.cuda(), target.cuda()
             data, target = Variable(data), Variable(target)
+            data = data.sign()
+            #print("data_bin: ", data)
+
+            # print("data.shape: ",data.shape)
+            printed_data = data
+
+            # if flag==0:
+            #     print("data: ", printed_data.view(20,784))
+            #     print("target: ",target)
+            #     flag = 1
+            #data.shape: torch.Size([20, 1, 28, 28])
+
+
+            #
+            # print("target.shape: ", target.shape)
+            # print("target: ", target)
+
             output = model(data)
 
             test_loss += criterion(output, target).item() # sum up batch loss
+            # print("output.data.shape: ", output.data.shape)
+            # print("output.data: ",output.data)
+            # print("output.data.max: ", output.data.max(1, keepdim=True))
             pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
+            # print("pred: ", pred.shape)
+            # if flag==0:
+            #     print("pred: ", pred)
+            # print("target.data: ", target.data)
             correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+
+            #print("-------------------------------------------------------------------------------")
 
     test_loss /= len(test_loader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(

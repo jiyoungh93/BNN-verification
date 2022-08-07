@@ -1,12 +1,28 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Function
 
+
+def sign(var):
+    if var >= 0:
+        return 0
+    else:
+        return 1
+
 def Binarize(tensor,quant_mode='det'):
     if quant_mode=='det':
-        return tensor.sign()
+        #change from (-1,1) to (0,1)
+        return tensor.sign().add_(1).div_(2)
+        #return tensor.sign()
     else:
         return tensor.add_(1).div_(2).add_(torch.rand(tensor.size()).add(-0.5)).clamp_(0,1).round().mul_(2).add_(-1)
+
+def Binarize_input(tensor,quant_mode='det'):
+    if quant_mode=='det':
+        #change from (-1,1) to (0,1)
+        return tensor.sign().add_(1).div_(2)
+        #return tensor.sign()
 
 class HingeLoss(nn.Module):
     def __init__(self):
@@ -63,16 +79,32 @@ class BinarizeLinear(nn.Linear):
 
     def forward(self, input):
 
+        torch.set_printoptions(profile="full")
         if input.size(1) != 784:
-            input.data=Binarize(input.data)
+           #print("input.data: ", input.data)
+           input.data=Binarize(input.data)
+           #print("Binarised!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+           #print("input.data: ", input.data)
+        #else:
+        #    print("NOOOOOOOOOOOOOOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+
         if not hasattr(self.weight,'org'):
             self.weight.org=self.weight.data.clone()
         self.weight.data=Binarize(self.weight.org)
+
+
+        #print("input: ", input)
+        #print("weights: ",self.weight)
+
         out = nn.functional.linear(input, self.weight)
         if not self.bias is None:
             self.bias.org=self.bias.data.clone()
-            out += self.bias.view(1, -1).expand_as(out)
-
+            #print("bias: ", self.bias.org)
+            bias = self.bias.view(1, -1).expand_as(out)
+            bin_bias = Binarize(bias)
+            #out += self.bias.view(1, -1).expand_as(out)
+            out += bin_bias
         return out
 
 class BinarizeConv2d(nn.Conv2d):
