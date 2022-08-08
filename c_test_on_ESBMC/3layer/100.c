@@ -1094,7 +1094,7 @@ int main()
 
     for (int i = 0; i < 10; i++) {
         if (i != number) {
-            __ESBMC_assert(tensor_output[number] > tensor_output[i], "");
+            __ESBMC_assert(tensor_output[number] >= tensor_output[i], "");
         }
     }
 

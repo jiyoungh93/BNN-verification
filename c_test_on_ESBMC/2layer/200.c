@@ -877,7 +877,7 @@ static inline void node_layer_1_MatMul(const _Bool A[INPUT_LAYER_SIZE_COL], int 
 {
     for (uint32_t i = 0; i < INPUT_LAYER_SIZE_COL; i++) {
         Y[i] = tensor_layer_1_Add_bias[i];
-        for (int j = 0; j < INPUT_LAYER_SIZE_ROW; j++) {
+        for (uint32_t j = 0; j < INPUT_LAYER_SIZE_ROW; j++) {
             Y[i] += (A[j] && tensor_layer_1_MatMul_weights[j][i]);
         }
         //printf("%f ", Y[i]);

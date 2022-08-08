@@ -8,10 +8,8 @@
 
 #define MAX(X,Y) ( X > Y ? X : Y)
 #define MIN(X,Y) ( X < Y ? X : Y)
-#define CLIP(X,L) ( MAX(MIN(X,L), -L) )
 #define BINARISE(X) ( X>0? 1:0)
 #define RELU(X) MAX(0,X)
-#define HARD_SIGMOID(X) MAX( 0 , MIN( 1 ,((X+1)/2) ) )
 
 #define INPUT_LAYER_SIZE_COL 150
 #define INPUT_LAYER_SIZE_ROW 784
@@ -853,7 +851,7 @@ static const _Bool tensor_layer_1_MatMul_weights[INPUT_LAYER_SIZE_ROW][INPUT_LAY
 };
 
 /* layer_1_Add*/
-static const int tensor_layer_1_Add_bias[INPUT_LAYER_SIZE_COL] =
+static const _Bool tensor_layer_1_Add_bias[INPUT_LAYER_SIZE_COL] =
 { 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1 };
 
 static const float tensor_layer_1_batch_mean[INPUT_LAYER_SIZE_COL] =
