@@ -863,17 +863,17 @@ static const float tensor_layer_1_batch_var_modified[INPUT_LAYER_SIZE_COL] =
 { 0.058523f, 0.191277f, 0.075671f, 0.082141f, 0.091236f, 0.103366f, 0.090766f, 0.121454f, 0.082713f, 0.095717f, 0.057707f, 0.058314f, 0.059593f, 0.057865f, 0.059245f, 0.055644f, 0.053586f, 0.059937f, 0.05833f, 0.057308f, 0.051808f, 0.058534f, 0.058342f, 0.057859f, 0.053805f, 0.056718f, 0.058408f, 0.060544f, 0.05739f, 0.056395f, 0.060894f, 0.05809f, 0.058011f, 0.056491f, 0.058324f, 0.056206f, 0.056497f, 0.057977f, 0.057984f, 0.058511f, 0.058914f, 0.058791f, 0.058857f, 0.05945f, 0.055015f, 0.060141f, 0.057401f, 0.056569f, 0.059999f, 0.055796f, 0.059826f, 0.053983f, 0.05401f, 0.052725f, 0.05349f, 0.059585f, 0.061206f, 0.057071f, 0.057393f, 0.055343f, 0.053551f, 0.055145f, 0.056018f, 0.052213f, 0.057039f, 0.057263f, 0.054481f, 0.058783f, 0.058537f, 0.053921f, 0.055798f, 0.057643f, 0.054538f, 0.054014f, 0.058293f, 0.057813f, 0.058749f, 0.057835f, 0.05798f, 0.05973f, 0.054934f, 0.055585f, 0.058201f, 0.054752f, 0.056647f, 0.058908f, 0.05189f, 0.057098f, 0.0618f, 0.057076f, 0.054728f, 0.05228f, 0.054322f, 0.058726f, 0.056371f, 0.059095f, 0.055403f, 0.054501f, 0.054501f, 0.058236f };
 
 /* layer_1_MatMul*/
-static float tensor_layer_1_MatMul_output[INPUT_LAYER_SIZE_COL];
+static int tensor_layer_1_MatMul_output[INPUT_LAYER_SIZE_COL];
 
 /* layer_1_BN*/
 static float tensor_layer_1_BN_output[INPUT_LAYER_SIZE_COL];
 
 /* layer_1_Relu*/
-static float tensor_layer_1_Relu_output[INPUT_LAYER_SIZE_COL];
+static int tensor_layer_1_Relu_output[INPUT_LAYER_SIZE_COL];
 
 //1x748 * 748*10
 //node_layer_1_MatMul(tensor_input, tensor_layer_1_MatMul_weights, tensor_layer_1_MatMul_output)
-static inline void node_layer_1_MatMul(const _Bool A[INPUT_LAYER_SIZE_COL], float Y[INPUT_LAYER_SIZE_COL])
+static inline void node_layer_1_MatMul(const _Bool A[INPUT_LAYER_SIZE_COL], int Y[INPUT_LAYER_SIZE_COL])
 {
     for (uint32_t i = 0; i < INPUT_LAYER_SIZE_COL; i++) {
         Y[i] = tensor_layer_1_Add_bias[i];
@@ -884,7 +884,7 @@ static inline void node_layer_1_MatMul(const _Bool A[INPUT_LAYER_SIZE_COL], floa
     }
 }
 
-static inline void node_layer_1_ReLU(const float tensor_layer_1_MatMul_output[INPUT_LAYER_SIZE_COL], float tensor_layer_1_Relu_output[INPUT_LAYER_SIZE_COL])
+static inline void node_layer_1_ReLU(const int tensor_layer_1_MatMul_output[INPUT_LAYER_SIZE_COL], int tensor_layer_1_Relu_output[INPUT_LAYER_SIZE_COL])
 {
     for (uint32_t i = 0; i < INPUT_LAYER_SIZE_COL; i++) {
         tensor_layer_1_Relu_output[i] = RELU(tensor_layer_1_MatMul_output[i]);
@@ -893,10 +893,10 @@ static inline void node_layer_1_ReLU(const float tensor_layer_1_MatMul_output[IN
 
 }
 
-static inline void node_layer_1_BN(const float tensor_layer_1_Relu_output[INPUT_LAYER_SIZE_COL], float tensor_layer_1_BN_output[INPUT_LAYER_SIZE_COL])
+static inline void node_layer_1_BN(const int tensor_layer_1_Relu_output[INPUT_LAYER_SIZE_COL], float tensor_layer_1_BN_output[INPUT_LAYER_SIZE_COL])
 {
     for (uint32_t i = 0; i < INPUT_LAYER_SIZE_COL; i++) {
-        tensor_layer_1_BN_output[i] = (tensor_layer_1_Relu_output[i] - tensor_layer_1_batch_mean[i]) * tensor_layer_1_batch_var_modified[i];
+        tensor_layer_1_BN_output[i] = ((float)tensor_layer_1_Relu_output[i] - tensor_layer_1_batch_mean[i]) * tensor_layer_1_batch_var_modified[i];
         //printf("tensor_layer_1_BN_output: %f\n", tensor_layer_1_BN_output[i]);
     }
 }
